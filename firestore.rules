@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection rules
+    match /users/{userId} {
+      // Allow reading:
+      // 1. For phone number login lookup (unauthenticated)
+      // 2. User's own data
+      // 3. Admin users can read all users (for PWD verification)
+      allow read: if request.auth == null 
+                  || request.auth.uid == userId
+                  || (request.auth != null && 
+                      (request.auth.token.email.matches('.*admin.*') ||
+                       request.auth.token.email in ['admin@safe.com', 'pdaoadmin@gmail.com']));
+      
+      // Allow write:
+      // 1. User's own data
+      // 2. Admin users can update any user (for PWD verification)
+      allow write: if request.auth != null && 
+                   (request.auth.uid == userId ||
+                    request.auth.token.email.matches('.*admin.*') ||
+                    request.auth.token.email in ['admin@safe.com', 'pdaoadmin@gmail.com']);
+      
+      // Allow creation during registration (when not yet authenticated)
+      allow create: if true;
+    }
+    
+    // Emergency reports collection
+    match /emergency_reports/{reportId} {
+      // Allow authenticated users to read all reports (for admin dashboard)
+      allow read: if request.auth != null;
+      
+      // Allow users to create emergency reports
+      allow create: if request.auth != null;
+      
+      // Allow users to update their own reports OR admin users to update any report
+      // Admin check: email contains 'admin' OR specific admin emails
+      allow update: if request.auth != null && 
+                    (resource.data.userId == request.auth.uid || 
+                     request.auth.token.email.matches('.*admin.*') ||
+                     request.auth.token.email in ['admin@safe.com', 'pdaoadmin@gmail.com']);
+      
+      // Allow admin to delete reports
+      allow delete: if request.auth != null && 
+                    (request.auth.token.email.matches('.*admin.*') ||
+                     request.auth.token.email in ['admin@safe.com', 'pdaoadmin@gmail.com']);
+    }
+    
+    // Admin activity logs collection
+    match /admin_activity_logs/{logId} {
+      // Only admin users can read activity logs
+      allow read: if request.auth != null && 
+                  (request.auth.token.email.matches('.*admin.*') ||
+                   request.auth.token.email in ['admin@safe.com', 'pdaoadmin@gmail.com']);
+      
+      // Admin users AND authenticated users can create activity logs
+      // (authenticated users for user registration and emergency report logging)
+      allow create: if request.auth != null;
+      
+      // No one can update or delete logs (immutable audit trail)
+      allow update, delete: if false;
+    }
+    
+    // Emergency categories collection
+    match /emergency_categories/{categoryId} {
+      // Anyone authenticated can read categories (needed for mobile app)
+      allow read: if request.auth != null;
+      
+      // Only admin users can create, update, or delete categories
+      allow create, update, delete: if request.auth != null && 
+                                     (request.auth.token.email.matches('.*admin.*') ||
+                                      request.auth.token.email in ['admin@safe.com', 'pdaoadmin@gmail.com']);
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "safe-emergency-app-f4c17",
+          "configurations": {
+            "android": "1:931268241347:android:128118209c0aa1fd4c3f76",
+            "ios": "1:931268241347:ios:a536fc3fa15e15da4c3f76"
+          }
+        }
+      },
+      "android": {
+        "default": {
+          "projectId": "safe-emergency-app-f4c17",
+          "appId": "1:931268241347:android:128118209c0aa1fd4c3f76",
+          "fileOutput": "android/app/google-services.json"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAFE App Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #D32F2F;
+            text-align: center;
+        }
+        .instructions {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            display: block;
+            margin: 20px auto;
+            cursor: crosshair;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        input, button, select {
+            margin: 10px 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #D32F2F;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #B71C1C;
+        }
+        .preview {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .icon-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 SAFE App Icon Generator</h1>
+        
+        <div class="instructions">
+            <strong>📱 Paano Gamitin:</strong><br>
+            1. I-customize ang text, colors, at font<br>
+            2. Click "Generate Icon"<br>
+            3. Click "Download Icon"<br>
+            4. I-save as: <code>safe_app_icon.png</code><br>
+            5. I-move sa folder: <code>assets/icon/</code><br>
+            6. Run: <code>flutter pub run flutter_launcher_icons</code>
+        </div>
+
+        <div class="controls">
+            <div>
+                <label>Text:</label>
+                <input type="text" id="iconText" value="SAFE" maxlength="10">
+            </div>
+            
+            <div>
+                <label>Background Color:</label>
+                <input type="color" id="bgColor" value="#D32F2F">
+                <select id="bgPreset" onchange="changeBackground()">
+                    <option value="#D32F2F">Emergency Red</option>
+                    <option value="#B71C1C">Dark Red</option>
+                    <option value="#EF5350">Light Red</option>
+                    <option value="#1E3A8A">Deep Blue</option>
+                    <option value="#8B5CF6">Violet</option>
+                </select>
+            </div>
+            
+            <div>
+                <label>Text Color:</label>
+                <input type="color" id="textColor" value="#FFFFFF">
+            </div>
+            
+            <div>
+                <label>Font Style:</label>
+                <select id="fontStyle">
+                    <option value="Arial">Arial</option>
+                    <option value="Arial Black">Arial Black</option>
+                    <option value="Impact">Impact</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Tahoma">Tahoma</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Add Icon:</label>
+                <select id="iconEmoji">
+                    <option value="">None</option>
+                    <option value="🛡️">🛡️ Shield</option>
+                    <option value="⚠️">⚠️ Warning</option>
+                    <option value="🚨">🚨 Emergency</option>
+                    <option value="📱">📱 Phone</option>
+                    <option value="SOS">SOS</option>
+                </select>
+            </div>
+            
+            <div>
+                <button onclick="generateIcon()">🎨 Generate Icon</button>
+                <button onclick="downloadIcon()">💾 Download Icon</button>
+            </div>
+        </div>
+
+        <canvas id="iconCanvas" width="1024" height="1024"></canvas>
+
+        <div class="preview">
+            <p><strong>Preview (100x100):</strong></p>
+            <img id="preview" class="icon-preview" alt="Preview">
+        </div>
+
+        <div id="successMessage" class="success">
+            <strong>✅ Success!</strong><br>
+            Icon generated! Click "Download Icon" to save as <code>safe_app_icon.png</code>
+        </div>
+
+        <div class="instructions">
+            <strong>📂 Next Steps:</strong><br>
+            1. Save downloaded file as: <code>safe_app_icon.png</code><br>
+            2. Move to: <code>C:\Users\FakeRafferty\OneDrive\Documents\safe_application_for_deafandmute\assets\icon\</code><br>
+            3. Open PowerShell sa project folder<br>
+            4. Run: <code>flutter pub run flutter_launcher_icons</code><br>
+            5. Run: <code>flutter clean</code><br>
+            6. Run: <code>flutter run</code><br>
+            7. ✅ Tapos na! Check ang app icon sa phone!
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+        const preview = document.getElementById('preview');
+
+        function changeBackground() {
+            const preset = document.getElementById('bgPreset').value;
+            document.getElementById('bgColor').value = preset;
+        }
+
+        function generateIcon() {
+            const text = document.getElementById('iconText').value || 'SAFE';
+            const bgColor = document.getElementById('bgColor').value;
+            const textColor = document.getElementById('textColor').value;
+            const fontStyle = document.getElementById('fontStyle').value;
+            const emoji = document.getElementById('iconEmoji').value;
+
+            // Clear canvas
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, 1024, 1024);
+
+            // Add gradient effect
+            const gradient = ctx.createLinearGradient(0, 0, 0, 1024);
+            gradient.addColorStop(0, bgColor);
+            gradient.addColorStop(1, adjustColor(bgColor, -30));
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1024, 1024);
+
+            // Draw icon/emoji if selected
+            if (emoji) {
+                ctx.font = '300px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = textColor;
+                if (emoji === 'SOS') {
+                    ctx.font = `bold 200px ${fontStyle}`;
+                    ctx.fillText(emoji, 512, 350);
+                } else {
+                    ctx.fillText(emoji, 512, 350);
+                }
+            }
+
+            // Draw text
+            ctx.font = `bold ${emoji ? '150px' : '250px'} ${fontStyle}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = textColor;
+            ctx.fillText(text, 512, emoji ? 650 : 512);
+
+            // Add subtle shadow
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 5;
+            ctx.shadowOffsetY = 5;
+
+            // Update preview
+            preview.src = canvas.toDataURL();
+
+            // Show success message
+            document.getElementById('successMessage').style.display = 'block';
+        }
+
+        function adjustColor(color, amount) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+            const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+            const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+            return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+        }
+
+        function downloadIcon() {
+            const link = document.createElement('a');
+            link.download = 'safe_app_icon.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            alert('✅ Icon downloaded!\n\nSunod na steps:\n1. I-save as: safe_app_icon.png\n2. I-move sa: assets/icon/\n3. Run: flutter pub run flutter_launcher_icons\n4. Run: flutter clean && flutter run');
+        }
+
+        // Generate default icon on load
+        window.onload = function() {
+            generateIcon();
+        };
+    </script>
+</body>
+</html>

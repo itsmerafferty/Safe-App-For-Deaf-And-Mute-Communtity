@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyCwgD_-6H2CIEBnsbOgH-C63ETCnfMKHtc</string>
+	<key>GCM_SENDER_ID</key>
+	<string>1068200147147</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.safeApplicationForDeafandmute</string>
+	<key>PROJECT_ID</key>
+	<string>safe-emergency-app</string>
+	<key>STORAGE_BUCKET</key>
+	<string>safe-emergency-app.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:1068200147147:ios:4a519d227be2f98f47434e</string>
+</dict>
+</plist>
