@@ -48,13 +48,68 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           .get();
 
       if (!adminDoc.exists) {
-        // Not an admin account
+        // Check if this is the first login - automatically create admin document
+        // This allows easy setup for first-time admin
+        final email = _emailController.text.trim().toLowerCase();
+        
+        // Auto-create admin document for emails containing 'admin' or 'pdao'
+        if (email.contains('admin') || email.contains('pdao')) {
+          try {
+            await FirebaseFirestore.instance
+                .collection('admins')
+                .doc(credential.user!.uid)
+                .set({
+              'email': credential.user!.email,
+              'name': credential.user!.email?.split('@')[0] ?? 'Admin',
+              'role': 'admin',
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+            
+            // Show success message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Admin account created successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+            
+            // Navigate to admin panel
+            if (mounted) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const AdminMainScreen(),
+                ),
+              );
+            }
+            return;
+          } catch (createError) {
+            // Failed to create admin document
+            await FirebaseAuth.instance.signOut();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to create admin account: ${createError.toString()}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
+        }
+        
+        // Not an admin email pattern
         await FirebaseAuth.instance.signOut();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Access denied. This is not an admin account.'),
+              content: Text('Access denied. This is not an admin account.\n\nHint: Use an email with "admin" or "pdao" to create an admin account.'),
               backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
             ),
           );
         }
@@ -283,20 +338,34 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.blue.shade200),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Colors.blue.shade700,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'For PDAO staff only. Use your admin credentials to access the management panel.',
-                            style: TextStyle(
-                              color: Colors.blue.shade900,
-                              fontSize: 13,
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.blue.shade700,
                             ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'For PDAO staff only',
+                                style: TextStyle(
+                                  color: Colors.blue.shade900,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '• Use Gmail with "admin" or "pdao" in the email\n• First login will automatically create admin account\n• Example: pdaoadmin@gmail.com',
+                          style: TextStyle(
+                            color: Colors.blue.shade900,
+                            fontSize: 12,
                           ),
                         ),
                       ],

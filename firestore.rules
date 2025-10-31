@@ -2,6 +2,35 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Admins collection rules
+    match /admins/{adminId} {
+      // Allow authenticated users to read admin collection to verify admin status
+      allow read: if request.auth != null;
+      
+      // Allow admin creation from Firebase Console or authenticated users
+      // This allows first-time admin setup
+      allow create: if request.auth != null;
+      
+      // Only the admin themselves can update their own data
+      allow update: if request.auth != null && request.auth.uid == adminId;
+      
+      // No one can delete admin accounts
+      allow delete: if false;
+    }
+    
+    // Activity logs collection
+    match /activity_logs/{logId} {
+      // Only authenticated users can read activity logs
+      allow read: if request.auth != null && 
+                  exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      
+      // Authenticated users can create activity logs
+      allow create: if request.auth != null;
+      
+      // No one can update or delete logs (immutable audit trail)
+      allow update, delete: if false;
+    }
+    
     // Users collection rules
     match /users/{userId} {
       // Allow reading:
