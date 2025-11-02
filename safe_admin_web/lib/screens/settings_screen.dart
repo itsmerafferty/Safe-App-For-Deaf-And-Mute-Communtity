@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/responsive_helper.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,13 +15,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final userEmail = authProvider.currentUser?.email ?? 'Admin';
+    final isMobile = ResponsiveHelper.isMobile(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
+      // Add drawer for mobile
+      drawer: isMobile ? _buildMobileDrawer(context) : null,
+      appBar: isMobile ? AppBar(
+        backgroundColor: const Color(0xFF1F2D3D),
+        title: const Text(
+          'Settings',
+          style: TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ) : null,
       body: Row(
         children: [
-          // Left Sidebar (same as dashboard)
-          _buildSidebar(context),
+          // Left Sidebar (Desktop only)
+          if (!isMobile) _buildSidebar(context),
 
           // Main Content
           Expanded(
@@ -182,6 +194,145 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Mobile Drawer
+  Widget _buildMobileDrawer(BuildContext context) {
+    return Drawer(
+      child: Container(
+        color: const Color(0xFF1F2D3D),
+        child: Column(
+          children: [
+            // Logo Section
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 50, 16, 20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD32F2F),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.emergency,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'SAFE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Admin Panel',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(color: Colors.white24),
+
+            // Navigation Items
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _buildMobileNavItem(
+                    icon: Icons.dashboard,
+                    label: 'Dashboard',
+                    route: '/dashboard',
+                  ),
+                  _buildMobileNavItem(
+                    icon: Icons.emergency,
+                    label: 'Emergency',
+                    route: '/emergency-reports',
+                  ),
+                  _buildMobileNavItem(
+                    icon: Icons.verified_user,
+                    label: 'Verification',
+                    route: '/verifications',
+                  ),
+                  _buildMobileNavItem(
+                    icon: Icons.settings,
+                    label: 'Settings',
+                    route: '/settings',
+                    isActive: true,
+                  ),
+                ],
+              ),
+            ),
+
+            // Logout Button
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: ListTile(
+                leading: const Icon(Icons.logout, color: Colors.white),
+                title: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () async {
+                  await Provider.of<AuthProvider>(context, listen: false).signOut();
+                  if (mounted) {
+                    Navigator.of(context).pushReplacementNamed('/login');
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileNavItem({
+    required IconData icon,
+    required String label,
+    required String route,
+    bool isActive = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isActive ? const Color(0xFFD32F2F) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: Colors.white,
+          size: 22,
+        ),
+        title: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+          ),
+        ),
+        onTap: () {
+          Navigator.of(context).pop(); // Close drawer
+          if (!isActive) {
+            Navigator.of(context).pushReplacementNamed(route);
+          }
+        },
       ),
     );
   }

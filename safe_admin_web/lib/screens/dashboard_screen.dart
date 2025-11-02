@@ -485,23 +485,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   _buildMobileNavItem(
                     icon: Icons.emergency,
-                    label: 'Emergency Reports',
+                    label: 'Emergency',
                     route: '/emergency-reports',
                   ),
                   _buildMobileNavItem(
-                    icon: Icons.people,
-                    label: 'Users',
-                    route: '/users',
-                  ),
-                  _buildMobileNavItem(
-                    icon: Icons.category,
-                    label: 'Categories',
-                    route: '/categories',
-                  ),
-                  _buildMobileNavItem(
-                    icon: Icons.history,
-                    label: 'Activity Logs',
-                    route: '/activity-logs',
+                    icon: Icons.verified_user,
+                    label: 'Verification',
+                    route: '/verifications',
                   ),
                   _buildMobileNavItem(
                     icon: Icons.settings,
