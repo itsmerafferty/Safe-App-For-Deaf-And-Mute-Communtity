@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "931268241347",
+    "project_id": "safe-emergency-app-f4c17",
+    "storage_bucket": "safe-emergency-app-f4c17.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:931268241347:android:128118209c0aa1fd4c3f76",
+        "android_client_info": {
+          "package_name": "com.example.safe_application_for_deafandmute"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDv6GRzR9Zm5aRBJixmFpIAe0kxmR56PRM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
