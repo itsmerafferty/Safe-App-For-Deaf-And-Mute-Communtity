@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen>
   String? _selectedCategory;
   String? _selectedSubcategory;
   List<File> _attachedImages = []; // Support multiple images (1-3)
+  List<File> _attachedVideos = []; // Support multiple videos (1-2)
   bool _isLocationSharing = false;
 
   // Location tracking
@@ -938,8 +939,8 @@ class _HomeScreenState extends State<HomeScreen>
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    // Show dialog to choose camera or gallery
-    final ImageSource? source = await showDialog<ImageSource>(
+    // Show dialog to choose media type, then source
+    final String? mediaType = await showDialog<String>(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
@@ -948,20 +949,69 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           title: const Row(
             children: [
-              Icon(Icons.camera_alt, color: Color(0xFF1565C0)),
+              Icon(Icons.attach_file, color: Color(0xFF1565C0)),
               SizedBox(width: 12),
               Text('Attach Evidence', style: TextStyle(fontSize: 18)),
             ],
           ),
           content: const Text(
-            'Choose how to attach photo evidence:',
+            'Choose what type of evidence to attach:',
             style: TextStyle(fontSize: 14),
           ),
           actions: [
             TextButton.icon(
+              onPressed: () => navigator.pop('photo'),
+              icon: const Icon(Icons.photo_camera),
+              label: const Text('Photo'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF1565C0),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => navigator.pop('video'),
+              icon: const Icon(Icons.videocam),
+              label: const Text('Video'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFD32F2F),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (mediaType == null || !mounted) return;
+
+    // Now show source selection
+    final ImageSource? source = await showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                mediaType == 'photo' ? Icons.camera_alt : Icons.videocam,
+                color: Color(0xFF1565C0),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Select ${mediaType == 'photo' ? 'Photo' : 'Video'} Source',
+                style: const TextStyle(fontSize: 18),
+              ),
+            ],
+          ),
+          content: Text(
+            'Choose how to capture ${mediaType == 'photo' ? 'photo' : 'video'} evidence:',
+            style: const TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton.icon(
               onPressed: () => navigator.pop(ImageSource.camera),
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Take Photo'),
+              icon: Icon(mediaType == 'photo' ? Icons.camera_alt : Icons.videocam),
+              label: Text(mediaType == 'photo' ? 'Take Photo' : 'Record Video'),
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFF1565C0),
               ),
@@ -982,39 +1032,88 @@ class _HomeScreenState extends State<HomeScreen>
     if (source == null || !mounted) return;
 
     try {
-      // Pick image from camera or gallery
-      final XFile? pickedFile = await _picker.pickImage(
-        source: source,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
+      if (mediaType == 'photo') {
+        // Pick image from camera or gallery
+        final XFile? pickedFile = await _picker.pickImage(
+          source: source,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        );
 
-      if (pickedFile != null && mounted) {
-        if (_attachedImages.length >= 3) {
+        if (pickedFile != null && mounted) {
+          if (_attachedImages.length >= 3) {
+            scaffoldMessenger.showSnackBar(
+              const SnackBar(
+                content: Text('⚠️ Maximum 3 photos allowed'),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
+            return;
+          }
+
+          setState(() {
+            _attachedImages.add(File(pickedFile.path));
+          });
+
           scaffoldMessenger.showSnackBar(
-            const SnackBar(
-              content: Text('⚠️ Maximum 3 photos allowed'),
-              backgroundColor: Colors.orange,
+            SnackBar(
+              content: Text('📸 Photo ${_attachedImages.length}/3 attached successfully'),
+              backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
               duration: Duration(seconds: 2),
             ),
           );
-          return;
         }
-
-        setState(() {
-          _attachedImages.add(File(pickedFile.path));
-        });
-
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('📸 Photo ${_attachedImages.length}/3 attached successfully'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
+      } else {
+        // Pick video from camera or gallery
+        final XFile? pickedFile = await _picker.pickVideo(
+          source: source,
+          maxDuration: const Duration(seconds: 30), // Limit to 30 seconds
         );
+
+        if (pickedFile != null && mounted) {
+          if (_attachedVideos.length >= 2) {
+            scaffoldMessenger.showSnackBar(
+              const SnackBar(
+                content: Text('⚠️ Maximum 2 videos allowed'),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
+            return;
+          }
+
+          // Check file size (max 50MB per video)
+          final fileSize = await File(pickedFile.path).length();
+          if (fileSize > 50 * 1024 * 1024) {
+            scaffoldMessenger.showSnackBar(
+              const SnackBar(
+                content: Text('⚠️ Video too large! Maximum 50MB per video'),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            return;
+          }
+
+          setState(() {
+            _attachedVideos.add(File(pickedFile.path));
+          });
+
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text('🎥 Video ${_attachedVideos.length}/2 attached successfully (${(fileSize / (1024 * 1024)).toStringAsFixed(1)}MB)'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -1098,6 +1197,8 @@ class _HomeScreenState extends State<HomeScreen>
               const Text('✓ Location will be shared'),
               if (_attachedImages.isNotEmpty) 
                 Text('✓ ${_attachedImages.length} photo(s) attached'),
+              if (_attachedVideos.isNotEmpty) 
+                Text('✓ ${_attachedVideos.length} video(s) attached'),
               const Text('✓ Medical ID & Emergency Contacts included'),
             ],
           ),
@@ -1167,6 +1268,25 @@ class _HomeScreenState extends State<HomeScreen>
         }
       }
 
+      // Upload videos if attached (support up to 2 videos)
+      List<String> videoUrls = [];
+      if (_attachedVideos.isNotEmpty) {
+        try {
+          final storageRef = FirebaseStorage.instance.ref();
+          for (int i = 0; i < _attachedVideos.length; i++) {
+            final videoRef = storageRef.child(
+              'emergency_videos/${user.uid}/${DateTime.now().millisecondsSinceEpoch}_$i.mp4',
+            );
+            await videoRef.putFile(_attachedVideos[i]);
+            final url = await videoRef.getDownloadURL();
+            videoUrls.add(url);
+          }
+        } catch (e) {
+          print('Video upload error: $e');
+          // Continue even if video upload fails
+        }
+      }
+
       // Get user data (Medical ID & Emergency Contacts) for ALL emergency types
       Map<String, dynamic>? medicalData;
       try {
@@ -1201,6 +1321,7 @@ class _HomeScreenState extends State<HomeScreen>
           'address': _currentAddress,
         },
         if (imageUrls.isNotEmpty) 'imageUrls': imageUrls,
+        if (videoUrls.isNotEmpty) 'videoUrls': videoUrls,
         if (medicalData != null) 'medicalData': medicalData,
       };
 
@@ -1241,6 +1362,7 @@ class _HomeScreenState extends State<HomeScreen>
         _selectedCategory = null;
         _selectedSubcategory = null;
         _attachedImages.clear();
+        _attachedVideos.clear();
       });
     } catch (e) {
       // Close loading dialog if open
@@ -1650,7 +1772,7 @@ class _HomeScreenState extends State<HomeScreen>
         children: [
           const Row(
             children: [
-              Icon(Icons.camera_alt, color: Color(0xFF1565C0), size: 24),
+              Icon(Icons.attach_file, color: Color(0xFF1565C0), size: 24),
               SizedBox(width: 8),
               Text(
                 'Attach Evidence (Optional)',
@@ -1664,7 +1786,7 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Attach a photo to help responders assess the situation quickly.',
+            'Attach photos or videos to help responders assess the situation quickly.',
             style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
             overflow: TextOverflow.visible,
             softWrap: true,
@@ -1674,6 +1796,15 @@ class _HomeScreenState extends State<HomeScreen>
 
           // Image previews if photos are attached (up to 3)
           if (_attachedImages.isNotEmpty) ...[
+            Text(
+              'Photos (${_attachedImages.length}/3)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade800,
+              ),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1719,22 +1850,92 @@ class _HomeScreenState extends State<HomeScreen>
               }).toList(),
             ),
             const SizedBox(height: 12),
+          ],
+
+          // Video previews if videos are attached (up to 2)
+          if (_attachedVideos.isNotEmpty) ...[
             Text(
-              '${_attachedImages.length}/3 photos attached',
+              'Videos (${_attachedVideos.length}/2)',
               style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade800,
               ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _attachedVideos.asMap().entries.map((entry) {
+                final index = entry.key;
+                return Stack(
+                  children: [
+                    Container(
+                      height: 100,
+                      width: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.play_circle_outline,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Video',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _attachedVideos.removeAt(index);
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
             ),
             const SizedBox(height: 12),
           ],
 
-          // Add photo button
-          if (_attachedImages.length < 3)
+          // Add photo/video button
+          if (_attachedImages.length < 3 || _attachedVideos.length < 2)
             OutlinedButton.icon(
               onPressed: _attachPhoto,
               icon: const Icon(Icons.add_a_photo),
-              label: Text(_attachedImages.isEmpty ? 'Add Photo Evidence' : 'Add Another Photo'),
+              label: Text(
+                _attachedImages.isEmpty && _attachedVideos.isEmpty
+                    ? 'Add Photo or Video Evidence'
+                    : 'Add More Evidence',
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.blue,
                 side: const BorderSide(color: Colors.blue),
