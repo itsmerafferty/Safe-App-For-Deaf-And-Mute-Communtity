@@ -362,11 +362,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Row(
         children: [
-          // Menu Icon
-          IconButton(
-            icon: const Icon(Icons.menu, color: Color(0xFF1F2D3D)),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
+          // Menu Icon - use Builder to get correct context
+          Builder(
+            builder: (BuildContext builderContext) {
+              return IconButton(
+                icon: const Icon(Icons.menu, color: Color(0xFF1F2D3D)),
+                onPressed: () {
+                  Scaffold.of(builderContext).openDrawer();
+                },
+              );
             },
           ),
 
