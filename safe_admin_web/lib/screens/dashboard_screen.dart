@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../providers/auth_provider.dart';
+import '../utils/responsive_helper.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -218,91 +219,197 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final userEmail = authProvider.currentUser?.email ?? 'Admin';
+    final isMobile = ResponsiveHelper.isMobile(context);
+    final isTablet = ResponsiveHelper.isTablet(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-      body: Row(
-        children: [
-          // Left Sidebar
-          _buildSidebar(context),
-
-          // Main Content
-          Expanded(
-            child: Column(
+      // Add drawer for mobile
+      drawer: isMobile ? _buildMobileDrawer(context) : null,
+      body: isMobile || isTablet
+          ? _buildMobileLayout(context, userEmail)
+          : Row(
               children: [
-                // Top Bar
-                _buildTopBar(userEmail),
+                // Left Sidebar (Desktop only)
+                _buildSidebar(context),
 
-                // Dashboard Content
+                // Main Content
                 Expanded(
-                  child: _isLoading
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const CircularProgressIndicator(
-                                color: Color(0xFFD32F2F),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Loading dashboard data...',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _loadStatistics,
-                          child: SingleChildScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Dashboard Title
-                                const Text(
-                                  'Emergency Dashboard',
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1F2D3D),
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
+                  child: Column(
+                    children: [
+                      // Top Bar
+                      _buildTopBar(userEmail),
 
-                                // Emergency Statistics Cards
-                                _buildEmergencyStats(),
-
-                                const SizedBox(height: 32),
-
-                                // Content Row: Recent Emergencies + Map
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Recent Emergencies Panel
-                                    Expanded(
-                                      flex: 2,
-                                      child: _buildRecentEmergenciesPanel(),
-                                    ),
-
-                                    const SizedBox(width: 24),
-
-                                    // Map Section (Placeholder)
-                                    Expanded(
-                                      flex: 3,
-                                      child: _buildMapSection(),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      // Dashboard Content
+                      Expanded(
+                        child: _buildDashboardContent(),
+                      ),
+                    ],
+                  ),
                 ),
               ],
+            ),
+    );
+  }
+
+  // Mobile Layout
+  Widget _buildMobileLayout(BuildContext context, String userEmail) {
+    return Column(
+      children: [
+        // Mobile Top Bar with menu icon
+        _buildMobileTopBar(userEmail),
+
+        // Dashboard Content
+        Expanded(
+          child: _buildDashboardContent(),
+        ),
+      ],
+    );
+  }
+
+  // Dashboard Content (reusable for both layouts)
+  Widget _buildDashboardContent() {
+    return _isLoading
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(
+                  color: Color(0xFFD32F2F),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Loading dashboard data...',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          )
+        : RefreshIndicator(
+            onRefresh: _loadStatistics,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: ResponsiveHelper.getResponsivePadding(context),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Dashboard Title
+                  Text(
+                    'Emergency Dashboard',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.isMobile(context) ? 20 : 28,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1F2D3D),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Emergency Statistics Cards
+                  _buildEmergencyStats(),
+
+                  const SizedBox(height: 24),
+
+                  // Content: Recent Emergencies + Map
+                  ResponsiveHelper.isMobile(context)
+                      ? Column(
+                          children: [
+                            _buildRecentEmergenciesPanel(),
+                            const SizedBox(height: 16),
+                            _buildMapSection(),
+                          ],
+                        )
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Recent Emergencies Panel
+                            Expanded(
+                              flex: 2,
+                              child: _buildRecentEmergenciesPanel(),
+                            ),
+
+                            const SizedBox(width: 24),
+
+                            // Map Section
+                            Expanded(
+                              flex: 3,
+                              child: _buildMapSection(),
+                            ),
+                          ],
+                        ),
+                ],
+              ),
+            ),
+          );
+  }
+
+  // Mobile Top Bar with hamburger menu
+  Widget _buildMobileTopBar(String userEmail) {
+    return Container(
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Menu Icon
+          IconButton(
+            icon: const Icon(Icons.menu, color: Color(0xFF1F2D3D)),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
+
+          const SizedBox(width: 12),
+
+          // Logo
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD32F2F),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(
+              Icons.emergency,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          const Text(
+            'SAFE Admin',
+            style: TextStyle(
+              color: Color(0xFF1F2D3D),
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const Spacer(),
+
+          // User Avatar (mobile - smaller)
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: const Color(0xFFD32F2F),
+            child: Text(
+              userEmail.isNotEmpty ? userEmail.substring(0, 1).toUpperCase() : 'A',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
           ),
         ],
@@ -310,7 +417,156 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Sidebar Widget
+  // Mobile Drawer
+  Widget _buildMobileDrawer(BuildContext context) {
+    return Drawer(
+      child: Container(
+        color: const Color(0xFF1F2D3D),
+        child: Column(
+          children: [
+            // Logo Section
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 50, 16, 20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD32F2F),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.emergency,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'SAFE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Admin Panel',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(color: Colors.white24),
+
+            // Navigation Items
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _buildMobileNavItem(
+                    icon: Icons.dashboard,
+                    label: 'Dashboard',
+                    route: '/dashboard',
+                    isActive: true,
+                  ),
+                  _buildMobileNavItem(
+                    icon: Icons.emergency,
+                    label: 'Emergency Reports',
+                    route: '/emergency-reports',
+                  ),
+                  _buildMobileNavItem(
+                    icon: Icons.people,
+                    label: 'Users',
+                    route: '/users',
+                  ),
+                  _buildMobileNavItem(
+                    icon: Icons.category,
+                    label: 'Categories',
+                    route: '/categories',
+                  ),
+                  _buildMobileNavItem(
+                    icon: Icons.history,
+                    label: 'Activity Logs',
+                    route: '/activity-logs',
+                  ),
+                  _buildMobileNavItem(
+                    icon: Icons.settings,
+                    label: 'Settings',
+                    route: '/settings',
+                  ),
+                ],
+              ),
+            ),
+
+            // Logout Button
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: ListTile(
+                leading: const Icon(Icons.logout, color: Colors.white),
+                title: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () async {
+                  await Provider.of<AuthProvider>(context, listen: false).signOut();
+                  if (mounted) {
+                    Navigator.of(context).pushReplacementNamed('/login');
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileNavItem({
+    required IconData icon,
+    required String label,
+    required String route,
+    bool isActive = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isActive ? const Color(0xFFD32F2F) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: Colors.white,
+          size: 22,
+        ),
+        title: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+          ),
+        ),
+        onTap: () {
+          Navigator.of(context).pop(); // Close drawer
+          if (!isActive) {
+            Navigator.of(context).pushReplacementNamed(route);
+          }
+        },
+      ),
+    );
+  }
+
+  // Sidebar Widget (Desktop only)
   Widget _buildSidebar(BuildContext context) {
     return Container(
       width: 240,
@@ -509,8 +765,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Emergency Statistics Cards
+  // Emergency Statistics Cards (Responsive)
   Widget _buildEmergencyStats() {
+    final isMobile = ResponsiveHelper.isMobile(context);
+    
+    if (isMobile) {
+      // Mobile: 2 columns grid
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCardModern(
+                  count: _pendingEmergencies.toString(),
+                  label: 'NEW',
+                  color: const Color(0xFFF15A59),
+                  icon: Icons.notification_important,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCardModern(
+                  count: _ongoingEmergencies.toString(),
+                  label: 'PROCEEDING',
+                  color: const Color(0xFFFBBF24),
+                  icon: Icons.access_time,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCardModern(
+                  count: _resolvedEmergencies.toString(),
+                  label: 'RESOLVED',
+                  color: const Color(0xFF10B981),
+                  icon: Icons.check_circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCardModern(
+                  count: _totalEmergencies.toString(),
+                  label: 'TOTAL',
+                  color: const Color(0xFF6B7280),
+                  icon: Icons.folder_open,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+    
+    // Desktop/Tablet: Single row
     return Row(
       children: [
         Expanded(
@@ -558,11 +868,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required Color color,
     required IconData icon,
   }) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+    
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isMobile ? 12 : 20),
         border: Border.all(
           color: color.withOpacity(0.3),
           width: 2,
@@ -580,13 +892,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Icon(
             icon,
             color: color,
-            size: 32,
+            size: isMobile ? 24 : 32,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: isMobile ? 8 : 12),
           Text(
             count,
             style: TextStyle(
-              fontSize: 36,
+              fontSize: isMobile ? 24 : 36,
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -595,7 +907,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: isMobile ? 10 : 12,
               fontWeight: FontWeight.w500,
               color: Colors.grey.shade600,
               letterSpacing: 1,
