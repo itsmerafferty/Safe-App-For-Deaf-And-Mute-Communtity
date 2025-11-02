@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'personal_details_screen.dart';
 import 'services/firebase_service.dart';
+import 'services/notification_service.dart';
 import 'home_screen.dart';
 import 'location_details_screen.dart';
 import 'emergency_contacts_screen.dart';
@@ -91,6 +92,9 @@ class _LoginScreenState extends State<LoginScreen> {
           final registrationStep = data['registrationStep'] ?? 0;
 
           if (isComplete) {
+            // Initialize notification service after successful login
+            NotificationService().initialize();
+            
             // Navigate to home screen
             navigator.pushReplacement(
               MaterialPageRoute(builder: (context) => const HomeScreen()),
