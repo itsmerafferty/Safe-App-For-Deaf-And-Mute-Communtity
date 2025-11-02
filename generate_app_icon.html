@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAFE App Icon Generator</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .icon-preview {
+            margin: 30px 0;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .icon-container {
+            text-align: center;
+        }
+
+        .icon-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        canvas {
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        canvas:hover {
+            transform: scale(1.05);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .instructions {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            color: #333;
+            margin-top: 0;
+        }
+
+        .instructions ol {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .instructions code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 SAFE App Icon Generator</h1>
+        <p>Custom icon for SAFE - Silent Assistance for Emergencies</p>
+
+        <div class="icon-preview">
+            <div class="icon-container">
+                <canvas id="icon1024" width="1024" height="1024"></canvas>
+                <div class="icon-label">1024x1024 (iOS)</div>
+            </div>
+            <div class="icon-container">
+                <canvas id="icon512" width="512" height="512"></canvas>
+                <div class="icon-label">512x512 (Android)</div>
+            </div>
+        </div>
+
+        <button onclick="downloadIcon(1024)">📥 Download 1024x1024</button>
+        <button onclick="downloadIcon(512)">📥 Download 512x512</button>
+        <button onclick="downloadAllSizes()">📥 Download All Sizes</button>
+
+        <div class="instructions">
+            <h3>📋 Installation Instructions</h3>
+            <ol>
+                <li>Download the <strong>1024x1024</strong> icon above</li>
+                <li>Save it as <code>safe_app_icon.png</code></li>
+                <li>Place it in <code>assets/icon/safe_app_icon.png</code></li>
+                <li>Run: <code>flutter pub get</code></li>
+                <li>Run: <code>flutter pub run flutter_launcher_icons</code></li>
+                <li>Done! The app icon will be updated</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = size;
+            canvas.height = size;
+            
+            // Purple gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Draw emergency symbol (SOS with alert icon)
+            const centerX = size / 2;
+            const centerY = size / 2;
+            
+            // White circle background for icon
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, size * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw emergency alert icon
+            ctx.fillStyle = 'white';
+            
+            // Alert triangle
+            const triangleSize = size * 0.4;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - triangleSize / 2);
+            ctx.lineTo(centerX - triangleSize / 2, centerY + triangleSize / 2);
+            ctx.lineTo(centerX + triangleSize / 2, centerY + triangleSize / 2);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Exclamation mark
+            ctx.fillStyle = '#667eea';
+            
+            // Exclamation line
+            const lineHeight = size * 0.15;
+            const lineWidth = size * 0.04;
+            ctx.fillRect(centerX - lineWidth / 2, centerY - lineHeight / 2, lineWidth, lineHeight);
+            
+            // Exclamation dot
+            const dotSize = size * 0.03;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY + lineHeight / 2 + dotSize * 1.5, dotSize, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add "SAFE" text at bottom
+            const fontSize = size * 0.12;
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('SAFE', centerX, size * 0.85);
+        }
+
+        // Draw icons on page load
+        window.onload = function() {
+            drawIcon(document.getElementById('icon1024'), 1024);
+            drawIcon(document.getElementById('icon512'), 512);
+        };
+
+        function downloadIcon(size) {
+            // Create temporary canvas
+            const canvas = document.createElement('canvas');
+            drawIcon(canvas, size);
+            
+            // Download
+            const link = document.createElement('a');
+            link.download = `safe_app_icon_${size}x${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function downloadAllSizes() {
+            const sizes = [1024, 512, 192, 144, 96, 72, 48];
+            sizes.forEach((size, index) => {
+                setTimeout(() => {
+                    downloadIcon(size);
+                }, index * 500);
+            });
+        }
+    </script>
+</body>
+</html>
