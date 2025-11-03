@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -528,14 +529,23 @@ class _EmergencyReportsScreenState extends State<EmergencyReportsScreen> {
     if (imageUrl != null) allImages.add(imageUrl);
     if (imageUrls != null) allImages.addAll(imageUrls.cast<String>());
     
+    // Support video URLs
+    final videoUrls = data['videoUrls'] as List?;
+    final List<String> allVideos = [];
+    if (videoUrls != null) allVideos.addAll(videoUrls.cast<String>());
+    
     final userEmail = data['userEmail'] ?? 'Unknown';
     final medicalData = data['medicalData'] as Map<String, dynamic>?;
 
-    // Debug: Print image URLs to console
+    // Debug: Print media URLs to console
     if (allImages.isNotEmpty) {
       print('📸 Emergency report ${doc.id} has ${allImages.length} image(s)');
-    } else {
-      print('📭 Emergency report ${doc.id} has NO images');
+    }
+    if (allVideos.isNotEmpty) {
+      print('🎥 Emergency report ${doc.id} has ${allVideos.length} video(s)');
+    }
+    if (allImages.isEmpty && allVideos.isEmpty) {
+      print('📭 Emergency report ${doc.id} has NO media');
     }
 
     return Card(
@@ -555,6 +565,7 @@ class _EmergencyReportsScreenState extends State<EmergencyReportsScreen> {
             // Image indicator badge
             if (allImages.isNotEmpty)
               Container(
+                margin: const EdgeInsets.only(right: 4),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.blue.shade100,
@@ -573,6 +584,32 @@ class _EmergencyReportsScreenState extends State<EmergencyReportsScreen> {
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                         color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            // Video indicator badge
+            if (allVideos.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.videocam,
+                        size: 12, color: Colors.red.shade700),
+                    const SizedBox(width: 4),
+                    Text(
+                      allVideos.length > 1 ? '${allVideos.length} Videos' : 'Video',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red.shade700,
                       ),
                     ),
                   ],
@@ -967,6 +1004,142 @@ class _EmergencyReportsScreenState extends State<EmergencyReportsScreen> {
                       ],
                     ),
                   ),
+                ],
+
+                // Attached Evidence Videos (support multiple)
+                if (allVideos.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    allVideos.length > 1 
+                        ? 'Attached Evidence Videos (${allVideos.length})' 
+                        : 'Attached Evidence Video',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  ...allVideos.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final videoUrl = entry.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.videocam, color: Colors.red.shade700, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                allVideos.length > 1 ? 'Video ${index + 1}' : 'Video Evidence',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red.shade300),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.play_circle_outline, 
+                                    color: Colors.red.shade700, size: 48),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Video Evidence Available',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Click below to view video in new tab',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                // Open video in new browser tab
+                                final Uri videoUri = Uri.parse(videoUrl);
+                                if (await canLaunchUrl(videoUri)) {
+                                  await launchUrl(videoUri, mode: LaunchMode.externalApplication);
+                                } else {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('⚠️ Could not open video'),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.play_arrow, size: 20),
+                              label: const Text('Play Video'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                // Copy video URL to clipboard
+                                await Clipboard.setData(ClipboardData(text: videoUrl));
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('✅ Video URL copied to clipboard'),
+                                      backgroundColor: Colors.green,
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.copy, size: 18),
+                              label: const Text('Copy Video URL'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red.shade700,
+                                side: BorderSide(color: Colors.red.shade300),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ],
 
                 // Action Buttons (only show for pending)

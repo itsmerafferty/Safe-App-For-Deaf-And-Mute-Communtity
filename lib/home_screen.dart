@@ -1239,13 +1239,32 @@ class _HomeScreenState extends State<HomeScreen>
         return;
       }
 
-      // Show loading dialog
+      // Show loading dialog with details
       if (mounted) {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder:
-              (context) => const Center(child: CircularProgressIndicator()),
+          builder: (context) => WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Sending Emergency Report...',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  if (_attachedImages.isNotEmpty)
+                    Text('📸 Uploading ${_attachedImages.length} image(s)...'),
+                  if (_attachedVideos.isNotEmpty)
+                    Text('🎥 Uploading ${_attachedVideos.length} video(s)...'),
+                ],
+              ),
+            ),
+          ),
         );
       }
 
@@ -1255,16 +1274,43 @@ class _HomeScreenState extends State<HomeScreen>
         try {
           final storageRef = FirebaseStorage.instance.ref();
           for (int i = 0; i < _attachedImages.length; i++) {
+            print('📸 Uploading image ${i + 1}/${_attachedImages.length}...');
+            
+            final imageFile = _attachedImages[i];
+            final fileName = imageFile.path.split('/').last;
+            final extension = fileName.split('.').last;
+            
             final imageRef = storageRef.child(
-              'emergency_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}_$i.jpg',
+              'emergency_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}_$i.$extension',
             );
-            await imageRef.putFile(_attachedImages[i]);
+            
+            await imageRef.putFile(imageFile);
             final url = await imageRef.getDownloadURL();
             imageUrls.add(url);
+            print('✅ Image ${i + 1} uploaded: $url');
           }
+          print('✅ All ${imageUrls.length} image(s) uploaded successfully');
         } catch (e) {
-          print('Image upload error: $e');
-          // Continue even if image upload fails
+          print('❌ Image upload error: $e');
+          
+          // Show error to user if image upload fails
+          if (mounted) {
+            Navigator.of(context).pop(); // Close loading dialog
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('⚠️ Image upload failed: ${e.toString()}\nTrying to send without images...'),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+            
+            // Show loading dialog again
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => const Center(child: CircularProgressIndicator()),
+            );
+          }
         }
       }
 
@@ -1274,16 +1320,55 @@ class _HomeScreenState extends State<HomeScreen>
         try {
           final storageRef = FirebaseStorage.instance.ref();
           for (int i = 0; i < _attachedVideos.length; i++) {
+            print('📹 Uploading video ${i + 1}/${_attachedVideos.length}...');
+            
+            // Get file extension from the actual video file
+            final videoFile = _attachedVideos[i];
+            final fileName = videoFile.path.split('/').last;
+            final extension = fileName.split('.').last;
+            
             final videoRef = storageRef.child(
-              'emergency_videos/${user.uid}/${DateTime.now().millisecondsSinceEpoch}_$i.mp4',
+              'emergency_videos/${user.uid}/${DateTime.now().millisecondsSinceEpoch}_$i.$extension',
             );
-            await videoRef.putFile(_attachedVideos[i]);
+            
+            // Upload with progress tracking
+            final uploadTask = videoRef.putFile(videoFile);
+            
+            // Listen to upload progress
+            uploadTask.snapshotEvents.listen((taskSnapshot) {
+              final progress = (taskSnapshot.bytesTransferred / taskSnapshot.totalBytes) * 100;
+              print('📊 Video ${i + 1} upload progress: ${progress.toStringAsFixed(1)}%');
+            });
+            
+            // Wait for upload to complete
+            await uploadTask.whenComplete(() => print('✅ Video ${i + 1} uploaded successfully'));
+            
             final url = await videoRef.getDownloadURL();
             videoUrls.add(url);
+            print('🔗 Video ${i + 1} URL: $url');
           }
+          print('✅ All ${videoUrls.length} video(s) uploaded successfully');
         } catch (e) {
-          print('Video upload error: $e');
-          // Continue even if video upload fails
+          print('❌ Video upload error: $e');
+          
+          // Show error to user if video upload fails
+          if (mounted) {
+            Navigator.of(context).pop(); // Close loading dialog
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('⚠️ Video upload failed: ${e.toString()}\nTrying to send without video...'),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+            
+            // Show loading dialog again
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => const Center(child: CircularProgressIndicator()),
+            );
+          }
         }
       }
 
@@ -1325,10 +1410,20 @@ class _HomeScreenState extends State<HomeScreen>
         if (medicalData != null) 'medicalData': medicalData,
       };
 
+      // Debug log to verify data
+      print('📋 Emergency Report Data:');
+      print('   Category: ${_selectedCategory}');
+      print('   Subcategory: ${_selectedSubcategory}');
+      print('   Images: ${imageUrls.length} (${imageUrls.join(", ")})');
+      print('   Videos: ${videoUrls.length} (${videoUrls.join(", ")})');
+      print('   Location: $_currentAddress');
+
       // Save to Firestore
+      print('💾 Saving to Firestore...');
       final docRef = await FirebaseFirestore.instance
           .collection('emergency_reports')
           .add(reportData);
+      print('✅ Saved to Firestore with ID: ${docRef.id}');
 
       // Log emergency report to activity logs
       final userName = medicalData?['personalDetails']?['fullName'] ?? 'Unknown User';
